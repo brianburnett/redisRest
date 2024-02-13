@@ -32,8 +32,10 @@ func main() {
 }
 
 func basicAuth() string {
-	//TODO get from env
-	b64Cred := base64.StdEncoding.EncodeToString([]byte("admin@rl.org:cQbftc2"))
+	pw := os.Getenv("password")
+	credentials := fmt.Sprintf("admin@rl.org:%s", pw)
+
+	b64Cred := base64.StdEncoding.EncodeToString([]byte(credentials))
 
 	basicAuthStr := fmt.Sprintf("Basic %s", b64Cred)
 	return basicAuthStr
