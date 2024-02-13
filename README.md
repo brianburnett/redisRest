@@ -3,7 +3,7 @@ Use some redis REST admin APIs
 
 ## Run
 
-password=<pw> go run main.go
+password=yourpw go run main.go
 
 ## Notes
 
