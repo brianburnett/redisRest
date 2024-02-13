@@ -23,18 +23,12 @@ func main() {
 
 	fmt.Println("Create DB...")
 
-	// Hard coding 3 for example code - don't rely on the uid actually being 3
-	if !getDB(3) {
-		createDB()
-	} else {
-		fmt.Println("DB exists - skip creating...")
-	}
+	//getDB(3) 
+	createDB()
 
-	// Do this once...
-	/*
+	fmt.Println("Add roles...")
 	addRole("DB Viewer", "db_viewer") // uid: 2
 	addRole("DB Member", "db_member") // uid: 3
-	*/
 
 	fmt.Println("Get roles...")
 	getRoles()
@@ -44,9 +38,15 @@ func main() {
 	// admin: 1
 	// db_viewer: 2
 	// db_member: 3
+
 	addUser("john.doe@example.com", "John Doe", 2)
 	addUser("mike.smith@example.com", "Mike Smith", 3)
 	addUser("cary.johnson@example.com", "Cary Johnson", 1)
+
+	fmt.Println("Get users...")
+	getUsers()
+
+	deleteDB(3)
 
 }
 
@@ -96,7 +96,6 @@ func getDB(uid int) bool {
 		os.Exit(1)
 	}
 
-
 	req.Header.Add("Authorization", basicAuth())
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
@@ -106,7 +105,6 @@ func getDB(uid int) bool {
 		fmt.Printf("Error: %s\n", err2)
 		os.Exit(1)
 	}
-
 
 	defer resp.Body.Close()
 
@@ -294,6 +292,89 @@ func addUser(email string, name string, role int) bool {
 	return is2XX(resp.Status)
 }
 
+func getUsers() {
+	type User struct {
+		Uid int                  `json:"uid"`
+		PasswordIssueDate string `json:"password_issue_date"`
+		EmailAlerts bool         `json:"email_alerts"`
+		BdbsEmailAlerts []string `json:"bdbs_email_alerts"`
+		AuthMethod string        `json:"auth_method"`
+		Status string            `json:"status"`
+		Name string              `json:"name"`
+		Role string              `json:"role"`
+		Email string             `json:"email"`
+	}
+
+	urlStr := fmt.Sprintf("%s%s", HOST, "/v1/users")
+	req, err := http.NewRequest(http.MethodGet, urlStr, nil)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		os.Exit(1)
+	}
+
+	req.Header.Add("Authorization", basicAuth())
+	req.Header.Add("Accept", "application/json")
+
+	resp, err2 := http.DefaultClient.Do(req)
+	if err2 != nil {
+		fmt.Printf("Error: %s\n", err2)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+
+	bytes, err3 := io.ReadAll(resp.Body)
+	if err3 != nil {
+		fmt.Printf("Error: %s\n", err3)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Resp: %s %s\n", resp.Status, string(bytes))
+
+	var users []User
+
+	err4 := json.Unmarshal(bytes, &users)
+	if err4 != nil {
+		fmt.Printf("Error: %s\n", err4)
+		os.Exit(1)
+	}
+
+	for _, u := range users {
+		fmt.Printf("User name: %s email: %s role: %s\n", u.Name, u.Email, u.Role)
+	}
+
+}
+
+func deleteDB(uid int) bool {
+	urlStr := fmt.Sprintf("%s%s%d", HOST, "/v1/bdbs/", uid)
+	req, err := http.NewRequest(http.MethodDelete, urlStr, nil)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		os.Exit(1)
+	}
+
+	req.Header.Add("Authorization", basicAuth())
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+
+	resp, err2 := http.DefaultClient.Do(req)
+	if err2 != nil {
+		fmt.Printf("Error: %s\n", err2)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+
+	bytes, err3 := io.ReadAll(resp.Body)
+	if err3 != nil {
+		fmt.Printf("Error: %s\n", err3)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Resp: %s %s\n", resp.Status, string(bytes))
+
+	return is2XX(resp.Status)
+}
 
 func is2XX(status string) bool {
 	sNum, err := strconv.Atoi(status)
